@@ -2,7 +2,7 @@
 // Uses Google Identity Services (OAuth 2.0) + Drive/Docs REST API
 
 const Drive = {
-  CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID', // Set via config.js or env
+  CLIENT_ID: '607018143304-ce6fgonnn3ktuireshpulsj4uqc9bppq.apps.googleusercontent.com',
   API_KEY: 'YOUR_GOOGLE_API_KEY',
   SCOPES: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents',
   BASE_FOLDER_ID: '1iXQQolBCGsCA4xrpzaCy70YW53i2FyB1', // Provided by user
