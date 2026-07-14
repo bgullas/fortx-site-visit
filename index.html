@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1e6fff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FortX SV">
+  <title>FortX Site Visit</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<!-- ── Auth Screen ── -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-logo">
+    <img src="icons/fortx-logo-full.png" alt="FortX" style="max-width:240px;border-radius:8px">
+    <div class="tagline-strip">
+      <span>Protect</span><span class="tagline-dot"></span>
+      <span>Monitor</span><span class="tagline-dot"></span>
+      <span>Manage</span>
+    </div>
+    <div class="brand-sub">CCTV Site Visit System</div>
+  </div>
+
+  <div class="auth-card">
+    <h2>Sign in to continue</h2>
+    <p>Use your company Google account to save reports to Google Drive and generate client-ready PDFs.</p>
+    <button id="btn-signin" class="google-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <p style="font-size:0.72rem;color:var(--navy-600);margin-top:14px;text-align:center">
+      Requires Google Drive &amp; Docs access
+    </p>
+  </div>
+
+  <button onclick="bypassAuth()" style="background:none;border:none;color:var(--slate-400);font-size:0.78rem;cursor:pointer;text-decoration:underline;opacity:0.6">
+    Continue offline (local PDF only)
+  </button>
+
+  <div style="font-size:0.65rem;color:var(--slate-400);text-align:center;opacity:0.5;margin-top:4px">
+    Powered by BluGraph Technologies
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="app" style="display:none">
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <img src="icons/fortx-logo-full.png" alt="FortX" onerror="this.style.display='none'">
+    </div>
+    <span id="topbar-title" class="topbar-title">Project Info</span>
+    <div id="save-indicator" class="save-indicator">
+      <div class="save-dot"></div> Saved
+    </div>
+  </header>
+
+  <!-- ① Project Info -->
+  <section id="page-project" class="page">
+
+    <div style="padding: 4px 0 8px">
+      <h1 style="font-size:1.15rem;font-weight:800;color:var(--white);margin-bottom:3px">New Site Visit</h1>
+      <p class="text-muted">Fill in the project details below to begin the survey.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        Project Details
+      </div>
+      <div class="flex-col">
+        <div class="field">
+          <label for="field-project">Project Name *</label>
+          <input id="field-project" type="text" placeholder="e.g. Marina Bay Office Tower CCTV" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="field-location">Site Location *</label>
+          <input id="field-location" type="text" placeholder="e.g. 1 Marina Blvd, Level 8">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="field-date">Date</label>
+            <input id="field-date" type="date">
+          </div>
+          <div class="field">
+            <label for="field-time">Time</label>
+            <input id="field-time" type="time">
+          </div>
+        </div>
+        <div class="field">
+          <label for="field-preparedBy">Prepared By</label>
+          <input id="field-preparedBy" type="text" placeholder="Engineer / technician name">
+        </div>
+        <div class="field">
+          <label for="field-client">Client / Company</label>
+          <input id="field-client" type="text" placeholder="Client organisation name">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+        Site Cover Photo
+      </div>
+      <p class="text-muted" style="margin-bottom:12px">Main entrance or site overview photo</p>
+      <div id="cover-photo-zone" class="photo-capture">
+        <input id="cover-photo-input" type="file" accept="image/*" capture="environment" style="display:none">
+        <div class="ph-content" style="display:flex;flex-direction:column;align-items:center;padding:28px">
+          <svg class="ph-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span class="ph-label">Tap to capture site photo</span>
+          <span class="ph-sub">Wide shot of the premises</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Visit Notes
+      </div>
+      <div class="field">
+        <textarea id="field-notes" placeholder="General site observations, access arrangements, security requirements, special instructions…" rows="4"></textarea>
+      </div>
+    </div>
+
+    <button id="btn-next-cameras" class="btn btn-primary btn-full" style="padding:15px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Continue to Camera Locations
+    </button>
+  </section>
+
+  <!-- ② Camera Locations -->
+  <section id="page-cameras" class="page">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h2 style="font-size:1.1rem;font-weight:800;color:var(--white);margin-bottom:2px">Camera Locations</h2>
+        <p class="text-muted">Add each CCTV installation point</p>
+      </div>
+      <button id="btn-add-camera" class="btn btn-primary" style="padding:11px 16px;flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add
+      </button>
+    </div>
+
+    <div id="camera-list" class="flex-col"></div>
+    <div style="height:16px"></div>
+  </section>
+
+  <!-- ③ Preview -->
+  <section id="page-preview" class="page">
+    <div>
+      <h2 style="font-size:1.1rem;font-weight:800;color:var(--white);margin-bottom:2px">Report Preview</h2>
+      <p class="text-muted">Review before generating the report</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        Summary
+      </div>
+      <div class="preview-section">
+        <div class="preview-row">
+          <span class="preview-label">Project</span>
+          <span class="preview-val" id="prev-project">—</span>
+        </div>
+        <div class="preview-divider"></div>
+        <div class="preview-row">
+          <span class="preview-label">Client</span>
+          <span class="preview-val" id="prev-client">—</span>
+        </div>
+        <div class="preview-divider"></div>
+        <div class="preview-row">
+          <span class="preview-label">Location</span>
+          <span class="preview-val" id="prev-location">—</span>
+        </div>
+        <div class="preview-divider"></div>
+        <div class="preview-row">
+          <span class="preview-label">Date &amp; Time</span>
+          <span class="preview-val"><span id="prev-date">—</span>, <span id="prev-time">—</span></span>
+        </div>
+        <div class="preview-divider"></div>
+        <div class="preview-row">
+          <span class="preview-label">Prepared By</span>
+          <span class="preview-val" id="prev-by">—</span>
+        </div>
+        <div class="preview-divider"></div>
+        <div class="preview-row">
+          <span class="preview-label">Camera Points</span>
+          <span class="preview-val"><span id="prev-cameras">0</span> locations</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+        Captured Photos
+      </div>
+      <div id="prev-thumbs" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      <p class="text-muted mt-2">Up to 8 previewed — all photos will appear in the report.</p>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="navigateTo('complete')" style="padding:15px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Confirm &amp; Proceed to Export
+    </button>
+    <button class="btn btn-secondary btn-full" onclick="navigateTo('cameras')">
+      ← Edit Camera Locations
+    </button>
+  </section>
+
+  <!-- ④ Complete & Export -->
+  <section id="page-complete" class="page">
+    <div>
+      <h2 style="font-size:1.1rem;font-weight:800;color:var(--white);margin-bottom:2px">Export Report</h2>
+      <p class="text-muted">Create the Google Drive report or download a local PDF</p>
+    </div>
+
+    <div class="card" style="border-color:rgba(30,111,255,0.3);background:rgba(30,111,255,0.06)">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Google Drive Report
+      </div>
+      <p class="text-muted" style="margin-bottom:14px">Creates a project folder in Drive, copies the branded template, fills all data, uploads photos, and exports a PDF — all automatically.</p>
+      <div class="flex-col">
+        <button id="btn-generate" class="btn btn-primary btn-full" style="padding:15px;font-size:1rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          Generate Report in Google Drive
+        </button>
+        <div id="result-links" class="flex-col"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Local PDF (Offline)
+      </div>
+      <p class="text-muted" style="margin-bottom:12px">Download a formatted PDF directly to this device without requiring Google sign-in.</p>
+      <button id="btn-download-pdf" class="btn btn-secondary btn-full">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF Locally
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Start New Visit
+      </div>
+      <p class="text-muted" style="margin-bottom:12px">Clear all current data and begin a fresh site survey.</p>
+      <button id="btn-new-visit" class="btn btn-danger btn-full">Clear &amp; Start New Visit</button>
+    </div>
+
+    <button id="btn-signout" class="btn btn-secondary btn-full" style="opacity:0.5;font-size:0.78rem;margin-top:4px">
+      Sign out of Google Account
+    </button>
+
+    <div style="text-align:center;font-size:0.65rem;color:var(--slate-400);opacity:0.45;padding-bottom:8px">
+      FortX Site Visit App · Powered by BluGraph Technologies
+    </div>
+  </section>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-page="project">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      Project
+    </button>
+    <button class="nav-btn" data-page="cameras">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Cameras
+      <span id="cam-badge" class="nav-badge" style="display:none"></span>
+    </button>
+    <button class="nav-btn" data-page="preview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Preview
+    </button>
+    <button class="nav-btn" data-page="complete">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      Export
+    </button>
+  </nav>
+
+</div><!-- /#app -->
+
+<!-- ── Camera Modal ── -->
+<div id="camera-modal" style="position:fixed;inset:0;z-index:150;background:rgba(6,11,26,0.92);overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch">
+  <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px;padding-bottom:40px">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px">
+      <h2 style="font-size:1.05rem;font-weight:800;color:var(--white)">Camera Location</h2>
+      <button id="cam-modal-cancel" class="btn btn-secondary" style="padding:8px 16px;font-size:0.8rem">✕ Cancel</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Camera Details
+      </div>
+      <div class="flex-col">
+        <div class="field">
+          <label for="cam-number">Camera ID / Reference</label>
+          <input id="cam-number" type="text" placeholder="e.g. CAM-01, L1-LOBBY, CARPARK-A">
+        </div>
+        <div class="field">
+          <label for="cam-desc">Location Description</label>
+          <textarea id="cam-desc" rows="4" placeholder="Describe where this camera will be installed — mounting location, height, direction, coverage area, any obstructions or special requirements…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Installation Photo
+      </div>
+      <p class="text-muted" style="margin-bottom:10px">Photo of the mounting point / bracket location</p>
+      <div id="cam-install-zone" class="photo-capture">
+        <input id="cam-install-input" type="file" accept="image/*" capture="environment" style="display:none">
+        <div class="ph-content" style="display:flex;flex-direction:column;align-items:center;padding:28px">
+          <svg class="ph-icon" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span class="ph-label">Tap to capture</span>
+          <span class="ph-sub">Where the camera will be fitted</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        View from Camera
+      </div>
+      <p class="text-muted" style="margin-bottom:10px">Photo showing the camera's field of view</p>
+      <div id="cam-view-zone" class="photo-capture">
+        <input id="cam-view-input" type="file" accept="image/*" capture="environment" style="display:none">
+        <div class="ph-content" style="display:flex;flex-direction:column;align-items:center;padding:28px">
+          <svg class="ph-icon" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="ph-label">Tap to capture</span>
+          <span class="ph-sub">The area the camera will cover</span>
+        </div>
+      </div>
+    </div>
+
+    <button id="cam-modal-save" class="btn btn-primary btn-full" style="font-size:1rem;padding:16px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+      Save Camera Location
+    </button>
+  </div>
+</div>
+
+<!-- ── Loading Overlay ── -->
+<div id="overlay" class="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-msg">Processing…</div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast" class="toast"></div>
+
+<script src="js/camera.js"></script>
+<script src="js/drive.js"></script>
+<script src="js/report.js"></script>
+<script src="js/app.js"></script>
+<script>
+  function bypassAuth() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    showToast('Offline mode — local PDF only');
+  }
+
+  // Camera count badge updater
+  setInterval(() => {
+    const badge = document.getElementById('cam-badge');
+    if (!badge) return;
+    const count = (window.state?.cameras || []).length;
+    badge.textContent = count || '';
+    badge.style.display = count ? 'flex' : 'none';
+  }, 500);
+</script>
+
+</body>
+</html>
