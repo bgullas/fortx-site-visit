@@ -14,7 +14,6 @@
   <link rel="stylesheet" href="css/app.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- FortX logo as base64 for PDF embedding -->
   <script src="js/logo-b64.js"></script>
 </head>
 <body>
@@ -29,44 +28,39 @@
     </div>
   </div>
   <div style="display:flex;gap:8px">
-    <button id="btn-resume"  class="btn btn-primary"    style="flex:1;padding:10px;font-size:0.85rem">▶ Continue Visit</button>
-    <button id="btn-discard" class="btn btn-secondary"  style="flex:1;padding:10px;font-size:0.85rem">✕ Start Fresh</button>
+    <button id="btn-resume"  class="btn btn-primary"   style="flex:1;padding:10px;font-size:0.85rem">▶ Continue Visit</button>
+    <button id="btn-discard" class="btn btn-secondary" style="flex:1;padding:10px;font-size:0.85rem">✕ Start Fresh</button>
   </div>
 </div>
 
-<!-- ── Auth Screen ── -->
-<div id="auth-screen" class="auth-screen">
-  <div class="auth-logo">
-    <img src="icons/fortx-logo-full.png" alt="FortX" style="max-width:240px;width:100%;border-radius:8px">
-    <div class="tagline-strip">
-      <span>Protect</span><span class="tagline-dot"></span>
-      <span>Monitor</span><span class="tagline-dot"></span>
-      <span>Manage</span>
+<!-- ── Google Sign-In Modal (only shown when Drive export is requested) ── -->
+<div id="signin-modal" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(6,11,26,0.92);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--navy-800);border:1px solid rgba(30,111,255,0.3);border-radius:16px;padding:28px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.5)">
+    <div style="text-align:center;margin-bottom:20px">
+      <img src="icons/fortx-logo-full.png" alt="FortX" style="max-width:160px;border-radius:6px;margin-bottom:12px">
+      <h2 style="font-size:1rem;font-weight:700;color:var(--white);margin-bottom:6px">Sign in to save to Google Drive</h2>
+      <p style="font-size:0.8rem;color:var(--slate-400);line-height:1.5">Your report data is ready. Sign in to create a Google Drive folder, fill the branded template and export a PDF.</p>
     </div>
-    <div class="brand-sub">CCTV Site Visit System</div>
+    <div class="flex-col">
+      <button id="btn-signin-modal" class="google-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <button id="btn-cancel-signin" class="btn btn-secondary btn-full" style="font-size:0.85rem">
+        Cancel — use local PDF instead
+      </button>
+    </div>
+    <p style="font-size:0.68rem;color:var(--slate-400);text-align:center;margin-top:14px;opacity:0.7">Requires access to Google Drive & Docs</p>
   </div>
-  <div class="auth-card">
-    <h2>Sign in to continue</h2>
-    <p>Sign in with any Google account to save reports to Google Drive and generate client-ready PDFs.</p>
-    <button id="btn-signin" class="google-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-      </svg>
-      Sign in with Google
-    </button>
-    <p style="font-size:0.72rem;color:var(--slate-400);margin-top:14px;text-align:center">Requires Google Drive & Docs access</p>
-  </div>
-  <button onclick="bypassAuth()" style="background:none;border:none;color:var(--slate-400);font-size:0.78rem;cursor:pointer;text-decoration:underline;opacity:0.6">
-    Continue offline (local PDF only)
-  </button>
-  <div style="font-size:0.65rem;color:var(--slate-400);opacity:0.4;margin-top:4px">Powered by BluGraph Technologies</div>
 </div>
 
-<!-- ── Main App ── -->
-<div id="app" style="display:none">
+<!-- ── Main App (no login required) ── -->
+<div id="app">
 
   <!-- Top Bar -->
   <header class="topbar">
@@ -74,9 +68,16 @@
       <img src="icons/fortx-logo-full.png" alt="FortX" style="height:26px" onerror="this.style.display='none'">
     </div>
     <span id="topbar-title" class="topbar-title">Project Info</span>
-    <div id="save-indicator" class="save-indicator">
-      <div class="save-dot"></div>
-      <span>Saved <span id="save-time"></span></span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div id="save-indicator" class="save-indicator">
+        <div class="save-dot"></div>
+        <span>Saved <span id="save-time"></span></span>
+      </div>
+      <!-- Sign in/out button in topbar -->
+      <button id="btn-topbar-auth" onclick="toggleAuth()"
+        style="background:none;border:1px solid rgba(30,111,255,0.3);border-radius:6px;color:var(--blue-300);font-size:0.65rem;font-weight:600;padding:4px 8px;cursor:pointer;letter-spacing:0.04em;white-space:nowrap">
+        SIGN IN
+      </button>
     </div>
   </header>
 
@@ -84,7 +85,7 @@
   <section id="page-project" class="page">
     <div style="padding:4px 0 6px">
       <h1 style="font-size:1.1rem;font-weight:800;color:var(--white);margin-bottom:3px">New Site Visit</h1>
-      <p class="text-muted">Date & time captured automatically when you begin.</p>
+      <p class="text-muted">Date & time captured automatically. No sign-in required to start.</p>
     </div>
 
     <div class="card">
@@ -113,9 +114,8 @@
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
-        Site Cover Photo
+        Site Cover Photo <span style="font-weight:400;color:var(--slate-400);text-transform:none;font-size:0.7rem;letter-spacing:0">(optional)</span>
       </div>
-      <p class="text-muted" style="margin-bottom:12px">Main entrance or site overview — optional</p>
       <div id="cover-photo-zone" class="photo-capture">
         <input id="cover-photo-input" type="file" accept="image/*" capture="environment" style="display:none">
         <div class="ph-content" style="display:flex;flex-direction:column;align-items:center;padding:28px">
@@ -164,7 +164,6 @@
       <h2 style="font-size:1.05rem;font-weight:800;color:var(--white);margin-bottom:2px">Report Preview</h2>
       <p class="text-muted">Review before generating</p>
     </div>
-
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
@@ -188,7 +187,6 @@
         <div class="preview-row"><span class="preview-label">Total Photos</span><span class="preview-val"><span id="prev-photo-count">0</span> captured</span></div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
@@ -196,7 +194,6 @@
       </div>
       <div id="prev-cam-status"></div>
     </div>
-
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
@@ -204,7 +201,6 @@
       </div>
       <div id="prev-thumbs" style="display:flex;flex-wrap:wrap;gap:8px"></div>
     </div>
-
     <button class="btn btn-primary btn-full" onclick="navigateTo('complete')" style="padding:15px">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       Proceed to Export
@@ -216,34 +212,39 @@
   <section id="page-complete" class="page">
     <div>
       <h2 style="font-size:1.05rem;font-weight:800;color:var(--white);margin-bottom:2px">Export Report</h2>
-      <p class="text-muted">Create Google Drive report or download PDF</p>
+      <p class="text-muted">Download PDF instantly or save to Google Drive</p>
     </div>
 
-    <div class="card" style="border-color:rgba(30,111,255,0.3);background:rgba(30,111,255,0.06)">
+    <!-- Local PDF — always available, no login needed -->
+    <div class="card" style="border-color:rgba(30,111,255,0.35);background:rgba(30,111,255,0.07)">
       <div class="card-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        Google Drive Report
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF
+        <span style="margin-left:auto;font-size:0.65rem;background:rgba(34,197,94,0.15);color:var(--success);padding:2px 8px;border-radius:4px;font-weight:600;text-transform:none;letter-spacing:0">No sign-in needed</span>
       </div>
-      <p class="text-muted" style="margin-bottom:14px">Creates a project folder, fills the branded template, uploads all photos and generates a PDF — automatically.</p>
-      <div class="flex-col">
-        <button id="btn-generate" class="btn btn-primary btn-full" style="padding:15px;font-size:1rem">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-          Generate Report in Google Drive
-        </button>
-        <div id="result-links" class="flex-col"></div>
-      </div>
+      <p class="text-muted" style="margin-bottom:14px">Generates a branded FortX PDF with all photos directly on this device.</p>
+      <button id="btn-download-pdf" class="btn btn-primary btn-full" style="padding:15px;font-size:1rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF Report
+      </button>
     </div>
 
+    <!-- Google Drive — needs sign in -->
     <div class="card">
       <div class="card-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Local PDF (Offline)
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Save to Google Drive
+        <span id="auth-status-badge" style="margin-left:auto;font-size:0.65rem;background:rgba(148,163,184,0.15);color:var(--slate-400);padding:2px 8px;border-radius:4px;font-weight:600;text-transform:none;letter-spacing:0">Not signed in</span>
       </div>
-      <p class="text-muted" style="margin-bottom:12px">Download a PDF with FortX branding directly to this device — no sign-in required.</p>
-      <button id="btn-download-pdf" class="btn btn-secondary btn-full">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download PDF Locally
-      </button>
+      <p class="text-muted" style="margin-bottom:14px">Creates a project folder in Drive, fills the branded template and generates a PDF — requires Google sign-in.</p>
+      <div class="flex-col">
+        <button id="btn-generate" class="btn btn-secondary btn-full" style="padding:14px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          <span id="btn-generate-label">Sign in & Generate Report</span>
+        </button>
+        <div id="result-links" class="flex-col"></div>
+        <button id="btn-signout" style="display:none" class="btn btn-secondary btn-full" style="font-size:0.78rem;opacity:0.6">Sign out of Google</button>
+      </div>
     </div>
 
     <div class="card">
@@ -255,9 +256,8 @@
       <button id="btn-new-visit" class="btn btn-danger btn-full">Clear & Start New Visit</button>
     </div>
 
-    <button id="btn-signout" class="btn btn-secondary btn-full" style="opacity:0.5;font-size:0.78rem">Sign out of Google</button>
     <div style="text-align:center;font-size:0.65rem;color:var(--slate-400);opacity:0.4;padding-bottom:4px">
-      FortX Site Visit App · Powered by BluGraph Technologies
+      FortX Site Visit · Powered by BluGraph Technologies
     </div>
   </section>
 
@@ -286,7 +286,6 @@
 <!-- ── Camera Modal ── -->
 <div id="camera-modal" style="position:fixed;inset:0;z-index:150;background:rgba(6,11,26,0.94);overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch">
   <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-bottom:40px">
-
     <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px">
       <div>
         <h2 style="font-size:1rem;font-weight:800;color:var(--white)">Camera Location</h2>
@@ -294,7 +293,6 @@
       </div>
       <button id="cam-modal-cancel" class="btn btn-secondary" style="padding:8px 14px;font-size:0.8rem">✕ Cancel</button>
     </div>
-
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
@@ -307,7 +305,6 @@
           <textarea id="cam-desc" rows="3" placeholder="Mounting location, height, direction, coverage area…"></textarea></div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -324,7 +321,6 @@
         </div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -341,7 +337,6 @@
         </div>
       </div>
     </div>
-
     <button id="cam-modal-save" class="btn btn-primary btn-full" style="font-size:1rem;padding:16px">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
       Save Camera Location
@@ -349,7 +344,6 @@
   </div>
 </div>
 
-<!-- Overlays -->
 <div id="overlay" class="overlay"><div class="spinner"></div><div class="overlay-msg">Processing…</div></div>
 <div id="toast" class="toast"></div>
 
@@ -358,12 +352,76 @@
 <script src="js/report.js"></script>
 <script src="js/app.js"></script>
 <script>
-  function bypassAuth() {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    showToast('Offline mode — local PDF only');
+  // Update auth UI state whenever sign-in status changes
+  function updateAuthUI() {
+    const signedIn = !!Drive.token;
+    const badge    = document.getElementById('auth-status-badge');
+    const topBtn   = document.getElementById('btn-topbar-auth');
+    const label    = document.getElementById('btn-generate-label');
+    const signout  = document.getElementById('btn-signout');
+    if (badge)   { badge.textContent = signedIn ? '✓ Signed in' : 'Not signed in';
+                   badge.style.background = signedIn ? 'rgba(34,197,94,0.15)' : 'rgba(148,163,184,0.15)';
+                   badge.style.color      = signedIn ? 'var(--success)' : 'var(--slate-400)'; }
+    if (topBtn)  { topBtn.textContent = signedIn ? 'SIGN OUT' : 'SIGN IN'; }
+    if (label)   { label.textContent  = signedIn ? 'Generate Report in Google Drive' : 'Sign in & Generate Report'; }
+    if (signout) { signout.style.display = signedIn ? 'flex' : 'none'; }
   }
-  // Camera badge live update
+
+  function toggleAuth() {
+    if (Drive.token) {
+      Drive.signOut();
+      updateAuthUI();
+      showToast('Signed out');
+    } else {
+      showSignInModal();
+    }
+  }
+
+  function showSignInModal(afterSignIn) {
+    const modal = document.getElementById('signin-modal');
+    modal.style.display = 'flex';
+    const btn = document.getElementById('btn-signin-modal');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', async () => {
+      try {
+        showOverlay('Signing in…');
+        modal.style.display = 'none';
+        await Drive.signIn();
+        hideOverlay();
+        updateAuthUI();
+        showToast('Signed in ✓', 'success');
+        if (afterSignIn) afterSignIn();
+      } catch(e) {
+        hideOverlay();
+        showToast('Sign-in failed: ' + e.message, 'error');
+      }
+    });
+    document.getElementById('btn-cancel-signin').onclick = () => {
+      modal.style.display = 'none';
+    };
+  }
+
+  // Override generateReport to ask for sign-in if needed
+  window._generateReport = window.generateReport;
+  document.addEventListener('DOMContentLoaded', () => {
+    const genBtn = document.getElementById('btn-generate');
+    if (genBtn) {
+      genBtn.addEventListener('click', () => {
+        if (!Drive.token) {
+          showSignInModal(() => window._generateReport && window._generateReport());
+        } else {
+          window._generateReport && window._generateReport();
+        }
+      });
+    }
+    document.getElementById('btn-signout')?.addEventListener('click', () => {
+      Drive.signOut(); updateAuthUI(); showToast('Signed out');
+    });
+    updateAuthUI();
+  });
+
+  // Camera badge updater
   setInterval(() => {
     const badge = document.getElementById('cam-badge');
     if (!badge || !window.state) return;
