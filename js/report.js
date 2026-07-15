@@ -1,85 +1,72 @@
-// Report generation: creates Google Doc from template, uploads photos, generates PDF
-const Report = {
+'use strict';
 
-  TEMPLATE_ID: 'YOUR_TEMPLATE_DOC_ID', // Replace after template is created in Google Docs
+const Report = {
+  TEMPLATE_ID: 'YOUR_TEMPLATE_DOC_ID',
 
   async generate(visitData) {
     showOverlay('Creating project folder…');
     const projectName = visitData.project || 'Unnamed Project';
-    const dateStr = new Date(visitData.date).toLocaleDateString('en-SG', { day:'2-digit', month:'short', year:'numeric' });
+    const dateStr = new Date(visitData.date + 'T00:00:00').toLocaleDateString('en-SG', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
     const docName = `${projectName} — Site Visit ${dateStr}`;
 
     try {
-      // 1. Get or create project folder
       const folder = await Drive.getOrCreateFolder(projectName);
       showOverlay('Uploading photos…');
 
-      // 2. Upload all photos to Drive
       const photoUrls = {};
-      let camIdx = 0;
+      let idx = 0;
       for (const cam of visitData.cameras) {
-        camIdx++;
+        idx++;
         if (cam.installPhoto) {
-          const f = await Drive.uploadImage(cam.installPhoto, `CAM${camIdx}_install.jpg`, folder.id);
-          photoUrls[`cam${camIdx}_install`] = `https://drive.google.com/uc?id=${f.id}`;
+          const f = await Drive.uploadImage(cam.installPhoto, `CAM${idx}_install.jpg`, folder.id);
+          photoUrls[`cam${idx}_install`] = `https://drive.google.com/uc?id=${f.id}`;
         }
         if (cam.viewPhoto) {
-          const f = await Drive.uploadImage(cam.viewPhoto, `CAM${camIdx}_view.jpg`, folder.id);
-          photoUrls[`cam${camIdx}_view`] = `https://drive.google.com/uc?id=${f.id}`;
+          const f = await Drive.uploadImage(cam.viewPhoto, `CAM${idx}_view.jpg`, folder.id);
+          photoUrls[`cam${idx}_view`] = `https://drive.google.com/uc?id=${f.id}`;
+        }
+        if (idx === 1 && visitData.coverPhoto) {
+          await Drive.uploadImage(visitData.coverPhoto, 'site_cover.jpg', folder.id);
         }
       }
 
-      // 3. Copy template doc
       showOverlay('Creating report document…');
       const copied = await Drive.copyTemplate(Report.TEMPLATE_ID, docName, folder.id);
       const docId = copied.id;
 
-      // 4. Replace text placeholders
       const replacements = {
-        PROJECT: visitData.project || '',
-        CLIENT: visitData.client || '',
-        LOCATION: visitData.location || '',
-        DATE: dateStr,
-        TIME: visitData.time || '',
-        PREPARED_BY: visitData.preparedBy || '',
+        PROJECT:       visitData.project    || '',
+        CLIENT:        visitData.client     || '',
+        LOCATION:      visitData.location   || '',
+        DATE:          dateStr,
+        TIME:          visitData.time       || '',
+        PREPARED_BY:   visitData.preparedBy || '',
         TOTAL_CAMERAS: visitData.cameras.length.toString(),
-        VISIT_NOTES: visitData.notes || '',
+        VISIT_NOTES:   visitData.notes      || '',
       };
-
-      // Add camera-level placeholders
       visitData.cameras.forEach((cam, i) => {
         const n = i + 1;
-        replacements[`CAM${n}_NUMBER`] = cam.number || `CAM-${n}`;
-        replacements[`CAM${n}_DESC`] = cam.description || '';
+        replacements[`CAM${n}_NUMBER`] = cam.number      || `CAM-${n}`;
+        replacements[`CAM${n}_DESC`]   = cam.description || '';
       });
 
+      showOverlay('Filling report data…');
       await Drive.replacePlaceholders(docId, replacements);
 
-      // 5. Insert images into doc (simplified: append after text replacement)
-      showOverlay('Inserting photos into report…');
-      const imageRequests = [];
+      // Clear photo placeholders (images inserted separately)
+      const clearRequests = [];
       visitData.cameras.forEach((cam, i) => {
         const n = i + 1;
-        if (photoUrls[`cam${n}_install`]) {
-          imageRequests.push({ replaceAllText: {
-            containsText: { text: `{{CAM${n}_INSTALL_PHOTO}}`, matchCase: true },
-            replaceText: '' // will be replaced by image insertion below
-          }});
-        }
-        if (photoUrls[`cam${n}_view`]) {
-          imageRequests.push({ replaceAllText: {
-            containsText: { text: `{{CAM${n}_VIEW_PHOTO}}`, matchCase: true },
-            replaceText: ''
-          }});
-        }
+        clearRequests.push({ replaceAllText: { containsText: { text: `{{CAM${n}_INSTALL_PHOTO}}`, matchCase: true }, replaceText: '' } });
+        clearRequests.push({ replaceAllText: { containsText: { text: `{{CAM${n}_VIEW_PHOTO}}`,    matchCase: true }, replaceText: '' } });
       });
-      if (imageRequests.length) await Drive.batchUpdateDoc(docId, imageRequests);
+      if (clearRequests.length) await Drive.batchUpdateDoc(docId, clearRequests);
 
-      // 6. Export PDF
       showOverlay('Generating PDF…');
       const pdfBlob = await Drive.exportAsPDF(docId);
 
-      // 7. Upload PDF to same folder
       const pdfName = `${docName}.pdf`;
       const pdfForm = new FormData();
       pdfForm.append('metadata', new Blob([JSON.stringify({ name: pdfName, parents: [folder.id] })], { type: 'application/json' }));
@@ -93,96 +80,219 @@ const Report = {
 
       hideOverlay();
       return {
-        success: true,
+        success:    true,
         docId,
-        folderId: folder.id,
-        docLink: `https://docs.google.com/document/d/${docId}`,
-        pdfLink: pdfFile.webViewLink,
+        folderId:   folder.id,
+        docLink:    `https://docs.google.com/document/d/${docId}`,
+        pdfLink:    pdfFile.webViewLink,
         folderLink: `https://drive.google.com/drive/folders/${folder.id}`
       };
     } catch (err) {
       hideOverlay();
-      console.error('Report generation error:', err);
       throw err;
     }
   },
 
-  // Download PDF locally as fallback
+  // ── Local PDF with FortX logo ──────────────────────────────────────────────
   async downloadLocalPDF(visitData) {
-    // Uses jsPDF loaded in index.html for offline fallback
     if (!window.jspdf) { showToast('PDF library not loaded', 'error'); return; }
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const W = 210, margin = 20;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    const W = 210, M = 18; // page width, margin
 
-    // Header
-    doc.setFillColor(10, 15, 30);
-    doc.rect(0, 0, W, 40, 'F');
-    doc.setTextColor(245, 158, 11);
-    doc.setFontSize(20); doc.setFont('helvetica', 'bold');
-    doc.text('FortX', margin, 18);
-    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(200, 200, 200);
-    doc.text('CCTV Site Visit Report', margin, 27);
+    const NAVY  = [10, 16, 54];
+    const BLUE  = [30, 111, 255];
+    const WHITE = [255, 255, 255];
+    const GRAY  = [148, 163, 184];
+    const LIGHT = [238, 244, 255];
 
-    let y = 55;
-    doc.setTextColor(30, 30, 30);
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-    doc.text('Project Information', margin, y); y += 8;
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-    const dateStr = new Date(visitData.date).toLocaleDateString('en-SG');
-    const rows = [
-      ['Project', visitData.project], ['Location', visitData.location],
-      ['Date', dateStr], ['Time', visitData.time], ['Prepared By', visitData.preparedBy]
+    let y = 0;
+
+    // ── Cover page ──
+    // Navy header bar
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, W, 52, 'F');
+
+    // FortX logo (if available)
+    if (typeof FORTX_LOGO_B64 !== 'undefined') {
+      try {
+        doc.addImage(FORTX_LOGO_B64, 'PNG', M, 8, 72, 16);
+      } catch(e) { console.warn('Logo insert failed', e); }
+    }
+
+    // Blue accent line
+    doc.setFillColor(...BLUE);
+    doc.rect(0, 52, W, 1.5, 'F');
+
+    // "Powered by BluGraph" text
+    doc.setTextColor(...GRAY);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Powered by BluGraph Technologies', W - M, 47, { align: 'right' });
+
+    // Report title
+    doc.setTextColor(...WHITE);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PROTECT  •  MONITOR  •  MANAGE', M, 33);
+    doc.setFontSize(14);
+    doc.text('CCTV SITE VISIT REPORT', M, 44);
+
+    y = 66;
+
+    // ── Project info table ──
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BLUE);
+    doc.text('PROJECT INFORMATION', M, y); y += 5;
+
+    const dateStr = visitData.date
+      ? new Date(visitData.date + 'T00:00:00').toLocaleDateString('en-SG', { day:'2-digit', month:'long', year:'numeric' })
+      : '—';
+
+    const infoRows = [
+      ['Project Name',  visitData.project    || '—'],
+      ['Client',        visitData.client     || '—'],
+      ['Site Location', visitData.location   || '—'],
+      ['Visit Date',    dateStr],
+      ['Visit Time',    visitData.time       || '—'],
+      ['Prepared By',   visitData.preparedBy || '—'],
+      ['Total Cameras', visitData.cameras.length.toString()],
     ];
-    rows.forEach(([label, val]) => {
-      doc.setTextColor(100); doc.text(label + ':', margin, y);
-      doc.setTextColor(30); doc.text(val || '—', margin + 40, y);
-      y += 7;
+
+    infoRows.forEach(([label, val]) => {
+      doc.setFillColor(...NAVY);
+      doc.rect(M, y - 4, 48, 8, 'F');
+      doc.setFillColor(...LIGHT);
+      doc.rect(M + 48, y - 4, W - M * 2 - 48, 8, 'F');
+
+      doc.setTextColor(...BLUE);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text(label.toUpperCase(), M + 2, y + 0.5);
+
+      doc.setTextColor(...NAVY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(String(val), M + 50, y + 0.5);
+      y += 8;
     });
 
-    y += 6;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-    doc.setTextColor(30); doc.text('Camera Locations', margin, y); y += 8;
+    // ── Visit notes ──
+    if (visitData.notes) {
+      y += 4;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BLUE);
+      doc.text('VISIT NOTES', M, y); y += 5;
+      doc.setFillColor(...LIGHT);
+      const lines = doc.splitTextToSize(visitData.notes, W - M * 2 - 4);
+      const noteH = lines.length * 5 + 6;
+      doc.rect(M, y - 4, W - M * 2, noteH, 'F');
+      doc.setTextColor(...NAVY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(lines, M + 2, y + 0.5);
+      y += noteH;
+    }
 
+    // ── Camera sections ──
     for (const [i, cam] of visitData.cameras.entries()) {
+      // Page break check
       if (y > 240) { doc.addPage(); y = 20; }
-      doc.setFillColor(240, 240, 245);
-      doc.rect(margin, y - 5, W - margin * 2, 8, 'F');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30);
-      doc.text(`CAM-${i + 1}: ${cam.number || ''}`, margin + 2, y);
-      y += 8;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60);
-      doc.text(cam.description || 'No description', margin, y); y += 7;
+
+      y += 6;
+
+      // Camera header bar
+      doc.setFillColor(...NAVY);
+      doc.rect(M, y - 5, W - M * 2, 11, 'F');
+      doc.setFillColor(...BLUE);
+      doc.rect(M, y + 6, W - M * 2, 1, 'F');
+      doc.setTextColor(...WHITE);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text(`CAMERA ${i + 1}  —  ${cam.number || `CAM-${i+1}`}`, M + 3, y + 2);
+      y += 14;
+
+      // Description
+      doc.setFillColor(...NAVY);
+      doc.rect(M, y - 4, 40, 7, 'F');
+      doc.setFillColor(...LIGHT);
+      doc.rect(M + 40, y - 4, W - M * 2 - 40, 7, 'F');
+      doc.setTextColor(...BLUE);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('DESCRIPTION', M + 2, y);
+      doc.setTextColor(...NAVY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      const descLines = doc.splitTextToSize(cam.description || '—', W - M * 2 - 44);
+      doc.text(descLines, M + 42, y);
+      y += Math.max(7, descLines.length * 4 + 3);
 
       // Photos
-      const photoW = 80, photoH = 55;
-      if (cam.installPhoto) {
-        try {
-          if (y + photoH + 10 > 280) { doc.addPage(); y = 20; }
-          doc.setFontSize(8); doc.setTextColor(100);
-          doc.text('Installation Photo', margin, y); y += 4;
-          doc.addImage(cam.installPhoto, 'JPEG', margin, y, photoW, photoH);
-          if (cam.viewPhoto) {
-            doc.text('View from Camera', margin + photoW + 5, y - 4);
-            doc.addImage(cam.viewPhoto, 'JPEG', margin + photoW + 5, y, photoW, photoH);
-          }
-          y += photoH + 8;
-        } catch (e) { console.warn('Image insert failed', e); }
-      }
       y += 4;
+      const photoW = (W - M * 2 - 6) / 2;
+      const photoH = photoW * 0.65;
+
+      if (y + photoH + 16 > 285) { doc.addPage(); y = 20; }
+
+      // Photo labels
+      doc.setFillColor(...BLUE);
+      doc.rect(M, y, photoW, 7, 'F');
+      doc.setFillColor(77, 143, 255);
+      doc.rect(M + photoW + 6, y, photoW, 7, 'F');
+      doc.setTextColor(...WHITE);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('INSTALLATION PHOTO', M + 2, y + 4.5);
+      doc.text('VIEW FROM CAMERA', M + photoW + 8, y + 4.5);
+      y += 7;
+
+      // Photo boxes
+      doc.setFillColor(...LIGHT);
+      doc.rect(M, y, photoW, photoH, 'F');
+      doc.rect(M + photoW + 6, y, photoW, photoH, 'F');
+
+      // Insert actual photos
+      if (cam.installPhoto) {
+        try { doc.addImage(cam.installPhoto, 'JPEG', M, y, photoW, photoH, undefined, 'MEDIUM'); }
+        catch(e) { console.warn('Install photo error', e); }
+      } else {
+        doc.setTextColor(...GRAY);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('No photo captured', M + photoW / 2, y + photoH / 2, { align: 'center' });
+      }
+
+      if (cam.viewPhoto) {
+        try { doc.addImage(cam.viewPhoto, 'JPEG', M + photoW + 6, y, photoW, photoH, undefined, 'MEDIUM'); }
+        catch(e) { console.warn('View photo error', e); }
+      } else {
+        doc.setTextColor(...GRAY);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('No photo captured', M + photoW + 6 + photoW / 2, y + photoH / 2, { align: 'center' });
+      }
+
+      y += photoH + 4;
     }
 
-    if (visitData.notes) {
-      if (y > 250) { doc.addPage(); y = 20; }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30);
-      doc.text('Notes', margin, y); y += 7;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60);
-      const lines = doc.splitTextToSize(visitData.notes, W - margin * 2);
-      doc.text(lines, margin, y);
+    // ── Footer on all pages ──
+    const pageCount = doc.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 285, W, 12, 'F');
+      doc.setTextColor(...GRAY);
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('FortX Security Systems  |  Powered by BluGraph Technologies  |  Confidential Site Survey', W / 2, 291, { align: 'center' });
+      doc.text(`Page ${p} of ${pageCount}`, W - M, 291, { align: 'right' });
     }
 
-    doc.save(`${visitData.project || 'SiteVisit'}_Report.pdf`);
+    const filename = `${visitData.project || 'SiteVisit'}_Report_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(filename);
     showToast('PDF downloaded!', 'success');
   }
 };
